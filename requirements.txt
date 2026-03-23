@@ -1,0 +1,4 @@
+markitdown[all]
+anthropic
+httpx
+python-dotenv

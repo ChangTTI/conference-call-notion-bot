@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Controller</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f1117;
+            color: #e4e4e7;
+            min-height: 100vh;
+        }
+        .header {
+            background: #1a1b23;
+            border-bottom: 1px solid #2a2b35;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 { font-size: 20px; font-weight: 600; }
+        .header .refresh-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .header .refresh-btn:hover { background: #2563eb; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+        /* System Info */
+        .system-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .sys-card {
+            background: #1a1b23;
+            border: 1px solid #2a2b35;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .sys-card .label { font-size: 12px; color: #71717a; text-transform: uppercase; }
+        .sys-card .value { font-size: 24px; font-weight: 700; margin-top: 4px; }
+        .sys-card .sub { font-size: 12px; color: #a1a1aa; margin-top: 2px; }
+
+        /* Agent Cards */
+        .agents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 16px;
+        }
+        .agent-card {
+            background: #1a1b23;
+            border: 1px solid #2a2b35;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .agent-header {
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #2a2b35;
+        }
+        .agent-name {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .status-dot.running { background: #22c55e; box-shadow: 0 0 6px #22c55e88; }
+        .status-dot.stopped { background: #ef4444; }
+        .master-badge {
+            background: #f59e0b22;
+            color: #f59e0b;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        .agent-body { padding: 16px; }
+        .agent-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 13px;
+        }
+        .agent-info .label { color: #71717a; }
+        .agent-info .val { color: #e4e4e7; text-align: right; }
+        .agent-actions {
+            padding: 12px 16px;
+            border-top: 1px solid #2a2b35;
+            display: flex;
+            gap: 8px;
+        }
+        .btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-start { background: #22c55e22; color: #22c55e; }
+        .btn-start:hover { background: #22c55e44; }
+        .btn-stop { background: #ef444422; color: #ef4444; }
+        .btn-stop:hover { background: #ef444444; }
+        .btn-restart { background: #3b82f622; color: #3b82f6; }
+        .btn-restart:hover { background: #3b82f644; }
+        .btn-logs { background: #a855f722; color: #a855f7; }
+        .btn-logs:hover { background: #a855f744; }
+
+        /* Command Panel */
+        .command-panel {
+            margin-top: 24px;
+            background: #1a1b23;
+            border: 1px solid #2a2b35;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .command-panel h2 { font-size: 16px; margin-bottom: 12px; }
+        .cmd-row { display: flex; gap: 8px; margin-bottom: 12px; }
+        .cmd-select {
+            background: #2a2b35;
+            color: #e4e4e7;
+            border: 1px solid #3a3b45;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            min-width: 160px;
+        }
+        .cmd-input {
+            flex: 1;
+            background: #2a2b35;
+            color: #e4e4e7;
+            border: 1px solid #3a3b45;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .cmd-input:focus, .cmd-select:focus { outline: none; border-color: #3b82f6; }
+        .cmd-send {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .cmd-send:hover { background: #2563eb; }
+        .cmd-response {
+            background: #0f1117;
+            border: 1px solid #2a2b35;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'SF Mono', monospace;
+            font-size: 12px;
+            min-height: 60px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            color: #a1a1aa;
+        }
+
+        /* Log Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: #1a1b23;
+            border: 1px solid #2a2b35;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-header {
+            padding: 16px;
+            border-bottom: 1px solid #2a2b35;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h3 { font-size: 15px; }
+        .modal-close {
+            background: none; border: none; color: #71717a;
+            font-size: 20px; cursor: pointer;
+        }
+        .modal-body {
+            padding: 16px;
+            overflow-y: auto;
+            font-family: 'SF Mono', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            color: #a1a1aa;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1a1b23;
+            border: 1px solid #2a2b35;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 13px;
+            z-index: 200;
+            display: none;
+        }
+        .toast.success { border-color: #22c55e; }
+        .toast.error { border-color: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Agent Controller</h1>
+        <button class="refresh-btn" onclick="location.reload()">Refresh</button>
+    </div>
+
+    <div class="container">
+        <!-- System Info -->
+        <div class="system-bar">
+            <div class="sys-card">
+                <div class="label">CPU</div>
+                <div class="value">{{ system.cpu_percent }}%</div>
+            </div>
+            <div class="sys-card">
+                <div class="label">Memory</div>
+                <div class="value">{{ system.memory.percent }}%</div>
+                <div class="sub">{{ system.memory.used_gb }} / {{ system.memory.total_gb }} GB</div>
+            </div>
+            <div class="sys-card">
+                <div class="label">Disk</div>
+                <div class="value">{{ system.disk.percent }}%</div>
+                <div class="sub">{{ system.disk.used_gb }} / {{ system.disk.total_gb }} GB</div>
+            </div>
+            <div class="sys-card">
+                <div class="label">Uptime</div>
+                <div class="value">{{ system.uptime_hours }}h</div>
+            </div>
+        </div>
+
+        <!-- Agent Cards -->
+        <div class="agents-grid">
+            {% for agent in agents %}
+            <div class="agent-card">
+                <div class="agent-header">
+                    <div class="agent-name">
+                        <span class="status-dot {{ 'running' if agent.is_running else 'stopped' }}"></span>
+                        {{ agent.name }}
+                        {% if agent.is_master %}<span class="master-badge">MASTER</span>{% endif %}
+                    </div>
+                </div>
+                <div class="agent-body">
+                    <div class="agent-info">
+                        <span class="label">ID</span>
+                        <span class="val">{{ agent.agent_id }}</span>
+                        <span class="label">Status</span>
+                        <span class="val">{{ 'Running' if agent.is_running else 'Stopped' }}</span>
+                        {% if agent.is_running %}
+                        <span class="label">PID</span>
+                        <span class="val">{{ agent.pid }}</span>
+                        <span class="label">CPU</span>
+                        <span class="val">{{ agent.cpu_percent }}%</span>
+                        <span class="label">Memory</span>
+                        <span class="val">{{ agent.memory_mb }} MB</span>
+                        <span class="label">Uptime</span>
+                        <span class="val">{{ agent.uptime_seconds }}s</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="agent-actions">
+                    {% if not agent.is_running %}
+                    <button class="btn btn-start" onclick="agentAction('{{ agent.agent_id }}', 'start')">Start</button>
+                    {% else %}
+                    <button class="btn btn-stop" onclick="agentAction('{{ agent.agent_id }}', 'stop')">Stop</button>
+                    {% endif %}
+                    <button class="btn btn-restart" onclick="agentAction('{{ agent.agent_id }}', 'restart')">Restart</button>
+                    <button class="btn btn-logs" onclick="showLogs('{{ agent.agent_id }}')">Logs</button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Command Panel -->
+        <div class="command-panel">
+            <h2>Command</h2>
+            <div class="cmd-row">
+                <select class="cmd-select" id="cmdTarget">
+                    <option value="master">Master Agent</option>
+                    {% for agent in agents %}
+                    <option value="{{ agent.agent_id }}">{{ agent.name }}</option>
+                    {% endfor %}
+                </select>
+                <input class="cmd-input" id="cmdInput" placeholder="Enter command..."
+                       onkeydown="if(event.key==='Enter')sendCommand()">
+                <button class="cmd-send" onclick="sendCommand()">Send</button>
+            </div>
+            <div class="cmd-response" id="cmdResponse">Ready.</div>
+        </div>
+    </div>
+
+    <!-- Log Modal -->
+    <div class="modal-overlay" id="logModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="logTitle">Logs</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="logContent">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const API = '/api';
+
+        async function agentAction(agentId, action) {
+            try {
+                const res = await fetch(`${API}/agents/${agentId}/${action}`, { method: 'POST' });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(data.message || 'Success', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(data.detail || 'Error', 'error');
+                }
+            } catch (e) {
+                showToast('Network error', 'error');
+            }
+        }
+
+        async function showLogs(agentId) {
+            document.getElementById('logModal').classList.add('active');
+            document.getElementById('logTitle').textContent = `${agentId} - Logs`;
+            document.getElementById('logContent').textContent = 'Loading...';
+
+            try {
+                const res = await fetch(`${API}/agents/${agentId}/logs`);
+                const data = await res.json();
+                document.getElementById('logContent').textContent = data.logs || 'No logs.';
+            } catch (e) {
+                document.getElementById('logContent').textContent = 'Failed to load logs.';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('logModal').classList.remove('active');
+        }
+
+        async function sendCommand() {
+            const target = document.getElementById('cmdTarget').value;
+            const command = document.getElementById('cmdInput').value.trim();
+            if (!command) return;
+
+            const respEl = document.getElementById('cmdResponse');
+            respEl.textContent = 'Sending...';
+
+            const url = target === 'master'
+                ? `${API}/command`
+                : `${API}/agents/${target}/command`;
+
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command, timeout: 30 }),
+                });
+                const data = await res.json();
+                respEl.textContent = data.response || data.detail || JSON.stringify(data, null, 2);
+            } catch (e) {
+                respEl.textContent = 'Network error';
+            }
+        }
+
+        function showToast(msg, type) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = `toast ${type}`;
+            t.style.display = 'block';
+            setTimeout(() => { t.style.display = 'none'; }, 3000);
+        }
+
+        // Auto refresh every 30s
+        setTimeout(() => location.reload(), 30000);
+    </script>
+</body>
+</html>

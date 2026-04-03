@@ -1,0 +1,39 @@
+# Agent Configuration
+# 맥미니에서 관리할 에이전트들을 정의합니다.
+# 실제 환경에 맞게 수정하세요.
+
+master:
+  name: "Master Agent"
+  description: "모든 서브 에이전트를 관리하는 마스터 에이전트"
+  script: "~/agents/master_agent.py"
+  working_dir: "~/agents"
+  python: "python3"
+  auto_start: true
+  is_master: true
+  env:
+    AGENT_ROLE: "master"
+
+# 서브 에이전트 예시 - 실제 에이전트에 맞게 수정하세요
+# sub_agent_1:
+#   name: "Data Collector"
+#   description: "데이터 수집 에이전트"
+#   script: "~/agents/data_collector.py"
+#   working_dir: "~/agents"
+#   python: "python3"
+#   auto_start: false
+#   is_master: false
+#   managed_by: "master"
+#   env:
+#     AGENT_ROLE: "collector"
+
+# sub_agent_2:
+#   name: "Notion Sync"
+#   description: "노션 동기화 에이전트"
+#   script: "~/agents/notion_sync.py"
+#   working_dir: "~/agents"
+#   python: "python3"
+#   auto_start: false
+#   is_master: false
+#   managed_by: "master"
+#   env:
+#     AGENT_ROLE: "sync"
